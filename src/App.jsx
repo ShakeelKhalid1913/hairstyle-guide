@@ -195,7 +195,7 @@ function App() {
     if (currentStep === steps.length) {
       return (
         <div className="results-container">
-          <h2>Your Recommended Hairstyles</h2>
+          <h2>Your Perfect Style Matches</h2>
           <div className="results-grid">
             {results.map((result, index) => (
               <div key={index} className="result-card">
@@ -248,8 +248,8 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>Hairstyle Guide</h1>
-        <p>Find your perfect hairstyle match</p>
+        <h1>StyleMatch</h1>
+        <p>Discover your signature look in seconds</p>
       </header>
       
       <div className="progress-bar">
