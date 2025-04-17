@@ -215,28 +215,34 @@ function App() {
     }
     
     const currentStepData = steps[currentStep];
+    const isAgeRangeStep = currentStepData.key === 'ageRange';
+
     return (
-      <div className="step-content">
+      <div className={`step-content ${isAgeRangeStep ? 'age-range-step' : ''}`}>
         <h2>{currentStepData.name}</h2>
         <p>Select your {currentStepData.name.toLowerCase()}:</p>
         
-        <div className="options-grid">
-          {currentStepData.options.map((option, index) => (
-            <div
-              key={index}
-              className="option-card"
-              onClick={() => handleOptionSelect(option)}
-            >
-              {option}
-            </div>
-          ))}
+        <div className="content-wrapper">
+          <div className="options-grid">
+            {currentStepData.options.map((option, index) => (
+              <div
+                key={index}
+                className="option-card"
+                onClick={() => handleOptionSelect(option)}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+          
+          <div className="button-container">
+            {currentStep > 0 && (
+              <button className="back-button" onClick={handleBack}>
+                Back
+              </button>
+            )}
+          </div>
         </div>
-        
-        {currentStep > 0 && (
-          <button className="back-button" onClick={handleBack}>
-            Back
-          </button>
-        )}
       </div>
     );
   };

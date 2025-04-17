@@ -108,6 +108,25 @@ body {
   flex-direction: column;
 }
 
+.content-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.button-container {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 1rem;
+}
+
+.age-range-step .content-wrapper {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .step-content h2 {
   font-size: 1.8rem;
   color: #1f2937;
@@ -128,7 +147,7 @@ body {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem; /* Reduced from 2rem */
   padding: 0 0.5rem;
 }
 
@@ -172,7 +191,7 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
-  margin-top: auto;
+  margin-top: 0.5rem; /* Reduced from auto */
   align-self: center;
   display: flex;
   align-items: center;
@@ -207,8 +226,9 @@ body {
 .results-grid {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 15px; /* Reduced from 18px */
   padding: 0 0.5rem;
+  margin-bottom: 1rem; /* Added margin bottom */
 }
 
 .result-card {
@@ -304,7 +324,7 @@ body {
   color: white;
   border-radius: 12px;
   padding: 1rem 2rem;
-  margin-top: 2rem;
+  margin-top: 1rem; /* Reduced from 2rem */
   box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
   align-self: center;
 }
@@ -340,14 +360,43 @@ body {
   
   .results-grid {
     overflow-y: visible;  /* Allow content to flow */
-    padding-bottom: 100px;  /* Extra bottom padding for scrolling past last item */
+    padding-bottom: 60px; /* Reduced from 100px */
     flex: 1;
   }
   
   /* Ensure content doesn't get hidden behind fixed elements */
   .result-card {
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 12px; /* Reduced from 15px */
+  }
+
+  /* Keep the button always visible without scrolling */
+  .back-button, .results-container .back-button {
+    position: sticky;
+    bottom: 10px;
+    z-index: 10;
+    margin-top: 0.5rem;
+  }
+
+  .age-range-step {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 180px);
+  }
+  
+  .age-range-step .content-wrapper {
+    flex: 1;
+    position: relative;
+  }
+  
+  .age-range-step .button-container {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+    z-index: 5;
   }
 }
 
