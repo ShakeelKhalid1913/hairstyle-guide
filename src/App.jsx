@@ -17,6 +17,7 @@ function App() {
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedCards, setExpandedCards] = useState([]);
 
   // Define steps with their options
   const steps = [
@@ -42,7 +43,7 @@ function App() {
       name: 'Forehead Size',
       key: 'foreheadSize',
       weight: 10,
-      options: ['Small', 'Medium', 'Big']
+      options: ['Small (< 3 inches)', 'Medium (3-4 inches)', 'Big (> 4 inches)']
     },
     {
       name: 'Receding Hairline',
@@ -66,7 +67,7 @@ function App() {
       name: 'Age Range',
       key: 'ageRange',
       weight: 5,
-      options: ['Teens-30s', '18-35', '18-40', '18-45', '18-50', '20-40', '20-45', '20-50', 'Any']
+      options: ['< 20s', '20s', '30s', '40s', '50+']
     }
   ];
 
@@ -110,84 +111,177 @@ function App() {
     }
   };
 
+  // Helper function to check if an age falls within a range
+  const isAgeInRange = (selectedAge, rangeStr) => {
+    console.log('\n=== Age Range Matching ===');
+    console.log('User selected:', selectedAge);
+    console.log('CSV range:', rangeStr);
+
+    // Handle 'Any' case
+    if (rangeStr.toLowerCase() === 'any') {
+      console.log('CSV has "Any" - automatic match');
+      return true;
+    }
+
+    // Convert selected age to numeric range
+    let selectedMin, selectedMax;
+    if (selectedAge === '< 20s') {
+      selectedMin = 13; // Assuming teens start at 13
+      selectedMax = 19;
+    } else if (selectedAge === '20s') {
+      selectedMin = 20;
+      selectedMax = 29;
+    } else if (selectedAge === '30s') {
+      selectedMin = 30;
+      selectedMax = 39;
+    } else if (selectedAge === '40s') {
+      selectedMin = 40;
+      selectedMax = 49;
+    } else if (selectedAge === '50+') {
+      selectedMin = 50;
+      selectedMax = 100;
+    }
+
+    console.log('Selected age converted to range:', selectedMin, '-', selectedMax);
+
+    // Parse the range string
+    const ranges = rangeStr.toLowerCase().split(',').map(r => r.trim());
+    console.log('CSV ranges split:', ranges);
+    
+    const matches = ranges.some(range => {
+      console.log('\nChecking range:', range);
+      
+      if (range.includes('teens')) {
+        const isMatch = selectedMin < 20;
+        console.log('Teens range detected:', isMatch ? 'matches' : 'no match');
+        return isMatch;
+      }
+      
+      if (range.includes('+')) {
+        const min = parseInt(range);
+        const isMatch = selectedMin >= min;
+        console.log('Plus range detected:', min + '+', isMatch ? 'matches' : 'no match');
+        return isMatch;
+      }
+      
+      if (range.includes('-')) {
+        const [min, max] = range.split('-').map(num => parseInt(num));
+        const isMatch = selectedMin <= max && selectedMax >= min;
+        console.log('Numeric range:', min, '-', max, isMatch ? 'matches' : 'no match');
+        return isMatch;
+      }
+
+      console.log('Unrecognized range format:', range);
+      return false;
+    });
+
+    console.log('\nFinal result:', matches ? 'MATCH' : 'NO MATCH');
+    console.log('======================\n');
+    
+    return matches;
+  };
+
+  // Helper function to normalize forehead size
+  const normalizeForeheadSize = (size) => {
+    if (size.includes('Small')) return 'Small';
+    if (size.includes('Medium')) return 'Medium';
+    if (size.includes('Big')) return 'Big';
+    return size;
+  };
+
   // Calculate matching hairstyles based on user selections
   const calculateResults = (selections) => {
     const matches = hairstyles.map(hairstyle => {
       let score = 0;
       let totalWeight = 0;
+      let featureMatches = {};
       
-      // Check face shape
+      // Face shape
       const faceShapeOptions = String(hairstyle['Face Shape (30)']).toLowerCase().split(',').map(s => s.trim());
-      if (faceShapeOptions.includes(selections.faceShape.toLowerCase()) || faceShapeOptions.includes('any')) {
-        score += steps[0].weight;
-      }
+      const faceShapeMatch = faceShapeOptions.includes(selections.faceShape.toLowerCase()) || faceShapeOptions.includes('any');
+      if (faceShapeMatch) score += steps[0].weight;
       totalWeight += steps[0].weight;
+      featureMatches['Face Shape'] = faceShapeMatch;
       
-      // Check hair type
+      // Hair type
       const hairTypeOptions = String(hairstyle['Hair Type (20)']).toLowerCase().split(',').map(s => s.trim());
-      if (hairTypeOptions.includes(selections.hairType.toLowerCase()) || hairTypeOptions.includes('any')) {
-        score += steps[1].weight;
-      }
+      const hairTypeMatch = hairTypeOptions.includes(selections.hairType.toLowerCase()) || hairTypeOptions.includes('any');
+      if (hairTypeMatch) score += steps[1].weight;
       totalWeight += steps[1].weight;
+      featureMatches['Hair Type'] = hairTypeMatch;
       
-      // Check hair density
+      // Hair density
       const hairDensityOptions = String(hairstyle['Hair Density (15)']).toLowerCase().split(',').map(s => s.trim());
-      if (hairDensityOptions.includes(selections.hairDensity.toLowerCase()) || hairDensityOptions.includes('any')) {
-        score += steps[2].weight;
-      }
+      const densityMatch = hairDensityOptions.includes(selections.hairDensity.toLowerCase()) || hairDensityOptions.includes('any');
+      if (densityMatch) score += steps[2].weight;
       totalWeight += steps[2].weight;
+      featureMatches['Hair Density'] = densityMatch;
       
-      // Check forehead size
+      // Forehead size
       const foreheadSizeOptions = String(hairstyle['Forehead Size (10)']).toLowerCase().split(',').map(s => s.trim());
-      if (foreheadSizeOptions.includes(selections.foreheadSize.toLowerCase()) || foreheadSizeOptions.includes('any')) {
-        score += steps[3].weight;
-      }
+      const normalizedSelection = normalizeForeheadSize(selections.foreheadSize).toLowerCase();
+      const foreheadMatch = foreheadSizeOptions.includes(normalizedSelection) || foreheadSizeOptions.includes('any');
+      if (foreheadMatch) score += steps[3].weight;
       totalWeight += steps[3].weight;
+      featureMatches['Forehead Size'] = foreheadMatch;
       
-      // Check receding hairline
+      // Receding hairline
       const recedingHairlineOptions = String(hairstyle['Receding Hairline (10)']).toLowerCase().split(',').map(s => s.trim());
-      if (recedingHairlineOptions.includes(selections.recedingHairline.toLowerCase()) || recedingHairlineOptions.includes('any')) {
-        score += steps[4].weight;
-      }
+      const hairlineMatch = recedingHairlineOptions.includes(selections.recedingHairline.toLowerCase()) || recedingHairlineOptions.includes('any');
+      if (hairlineMatch) score += steps[4].weight;
       totalWeight += steps[4].weight;
+      featureMatches['Receding Hairline'] = hairlineMatch;
       
-      // Check skin color
+      // Skin color
       const skinColorOptions = String(hairstyle['Skin Color (5)']).toLowerCase().split(',').map(s => s.trim());
-      if (skinColorOptions.includes(selections.skinColor.toLowerCase()) || skinColorOptions.includes('any')) {
-        score += steps[5].weight;
-      }
+      const skinMatch = skinColorOptions.includes(selections.skinColor.toLowerCase()) || skinColorOptions.includes('any');
+      if (skinMatch) score += steps[5].weight;
       totalWeight += steps[5].weight;
+      featureMatches['Skin Color'] = skinMatch;
       
-      // Check continent
+      // Continent
       const continentOptions = String(hairstyle['Continent (5)']).toLowerCase().split(',').map(s => s.trim());
-      if (continentOptions.includes(selections.continent.toLowerCase()) || continentOptions.includes('any')) {
-        score += steps[6].weight;
-      }
+      const continentMatch = continentOptions.includes(selections.continent.toLowerCase()) || continentOptions.includes('any');
+      if (continentMatch) score += steps[6].weight;
       totalWeight += steps[6].weight;
+      featureMatches['Region'] = continentMatch;
       
-      // Check age range
-      const ageRangeOptions = String(hairstyle['Age Range (5)']).toLowerCase().split(',').map(s => s.trim());
-      if (ageRangeOptions.includes(selections.ageRange.toLowerCase()) || ageRangeOptions.includes('any')) {
-        score += steps[7].weight;
-      }
+      // Age range
+      const ageRangeOptions = String(hairstyle['Age Range (5)']).toLowerCase().trim();
+      const ageMatch = isAgeInRange(selections.ageRange, ageRangeOptions);
+      if (ageMatch) score += steps[7].weight;
       totalWeight += steps[7].weight;
+      featureMatches['Age Range'] = ageMatch;
       
       // Calculate percentage match
       const percentMatch = totalWeight > 0 ? Math.round((score / totalWeight) * 100) : 0;
       
       return {
         name: hairstyle['Hairstyle Name'],
-        score: percentMatch
+        score: percentMatch,
+        matches: featureMatches
       };
     });
     
-    // Sort by score and take the top 5
-    const sortedMatches = matches.sort((a, b) => b.score - a.score).slice(0, 5);
+    // Filter matches to show only those above 80% and sort by score
+    const sortedMatches = matches
+      .filter(match => match.score >= 80)
+      .sort((a, b) => b.score - a.score);
+      
     setResults(sortedMatches);
   };
 
   // Calculate the progress percentage
   const progressPercentage = ((currentStep) / steps.length) * 100;
+
+  // Toggle details visibility for results
+  const toggleDetails = (index) => {
+    setExpandedCards(prev => {
+      const newExpanded = [...prev];
+      newExpanded[index] = !newExpanded[index];
+      return newExpanded;
+    });
+  };
 
   // Render the current step content
   const renderStepContent = () => {
@@ -197,17 +291,7 @@ function App() {
         <div className="results-container">
           <h2>Your Perfect Style Matches</h2>
           <div className="results-grid">
-            {results.map((result, index) => (
-              <div key={index} className="result-card">
-                <h3>{result.name}</h3>
-                <div className="match-percentage">
-                  <div className="match-bar">
-                    <div className="match-fill" style={{ width: `${result.score}%` }}></div>
-                  </div>
-                  <span>{result.score}% Match</span>
-                </div>
-              </div>
-            ))}
+            {results.map((result, index) => renderResults(result, index))}
           </div>
           <button className="back-button" onClick={() => setCurrentStep(0)}>Start Over</button>
         </div>
@@ -246,6 +330,60 @@ function App() {
       </div>
     );
   };
+
+  // Render individual result with expandable details
+  const renderResults = (result, index) => (
+    <div key={index} className="result-card" data-expanded={expandedCards[index]}>
+      <div className="result-header" onClick={() => toggleDetails(index)}>
+        <div className="result-main">
+          <h3>{result.name}</h3>
+          <div className="match-percentage">
+            <div className="match-bar">
+              <div className="match-fill" style={{ width: `${result.score}%` }}></div>
+            </div>
+            <span>{result.score}% Match</span>
+          </div>
+        </div>
+        <button className="expand-button" aria-label="Toggle details">
+          <svg className="expand-icon" viewBox="0 0 24 24" width="24" height="24">
+            <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div className="result-details">
+        <div className="match-features">
+          <h4>Matching Features</h4>
+          <ul>
+            {Object.entries(result.matches || {}).map(([feature, matched]) => (
+              matched && (
+                <li key={feature} className="feature-match">
+                  <svg viewBox="0 0 24 24" width="16" height="16" className="check-icon">
+                    <path d="M20 6L9 17l-5-5" fill="none" stroke="#6b46c1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {feature}
+                </li>
+              )
+            ))}
+          </ul>
+        </div>
+        <div className="mismatch-features">
+          <h4>Different Features</h4>
+          <ul>
+            {Object.entries(result.matches || {}).map(([feature, matched]) => (
+              !matched && (
+                <li key={feature} className="feature-mismatch">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path d="M18 6L6 18M6 6l12 12" fill="none" stroke="#e53e3e" strokeWidth="2.5" strokeLinecap="round"/>
+                  </svg>
+                  {feature}
+                </li>
+              )
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return <div className="loading">Loading...</div>
