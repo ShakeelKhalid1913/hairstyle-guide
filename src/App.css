@@ -423,11 +423,9 @@ body {
 /* Mobile responsiveness - FIXED SCROLLING ONLY */
 @media (max-width: 500px) {
   .app-container {
-    border-radius: 0;
-    height: 100vh;
-    max-width: 100%;
-    max-height: 100vh;
-    overflow: hidden;  /* Prevent outer container from scrolling */
+    height: 100%;
+    min-height: 100vh;
+    overflow-y: auto;
   }
   
   .results-container {

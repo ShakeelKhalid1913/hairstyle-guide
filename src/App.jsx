@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import Papa from 'papaparse'
 import './App.css'
 
+const DEBUG = false; // Set this to true to show logs, false to hide them
+
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
   const [hairstyles, setHairstyles] = useState([]);
@@ -113,13 +115,8 @@ function App() {
 
   // Helper function to check if an age falls within a range
   const isAgeInRange = (selectedAge, rangeStr) => {
-    console.log('\n=== Age Range Matching ===');
-    console.log('User selected:', selectedAge);
-    console.log('CSV range:', rangeStr);
-
     // Handle 'Any' case
     if (rangeStr.toLowerCase() === 'any') {
-      console.log('CSV has "Any" - automatic match');
       return true;
     }
 
@@ -142,43 +139,26 @@ function App() {
       selectedMax = 100;
     }
 
-    console.log('Selected age converted to range:', selectedMin, '-', selectedMax);
-
     // Parse the range string
     const ranges = rangeStr.toLowerCase().split(',').map(r => r.trim());
-    console.log('CSV ranges split:', ranges);
     
-    const matches = ranges.some(range => {
-      console.log('\nChecking range:', range);
-      
+    return ranges.some(range => {
       if (range.includes('teens')) {
-        const isMatch = selectedMin < 20;
-        console.log('Teens range detected:', isMatch ? 'matches' : 'no match');
-        return isMatch;
+        return selectedMin < 20;
       }
       
       if (range.includes('+')) {
         const min = parseInt(range);
-        const isMatch = selectedMin >= min;
-        console.log('Plus range detected:', min + '+', isMatch ? 'matches' : 'no match');
-        return isMatch;
+        return selectedMin >= min;
       }
       
       if (range.includes('-')) {
         const [min, max] = range.split('-').map(num => parseInt(num));
-        const isMatch = selectedMin <= max && selectedMax >= min;
-        console.log('Numeric range:', min, '-', max, isMatch ? 'matches' : 'no match');
-        return isMatch;
+        return selectedMin <= max && selectedMax >= min;
       }
 
-      console.log('Unrecognized range format:', range);
       return false;
     });
-
-    console.log('\nFinal result:', matches ? 'MATCH' : 'NO MATCH');
-    console.log('======================\n');
-    
-    return matches;
   };
 
   // Helper function to normalize forehead size
@@ -191,6 +171,22 @@ function App() {
 
   // Calculate matching hairstyles based on user selections
   const calculateResults = (selections) => {
+    // Log user selections if debug mode is on
+    if (DEBUG) {
+      console.log('\n=== User Selections ===');
+      console.table({
+        'Face Shape': selections.faceShape,
+        'Hair Type': selections.hairType,
+        'Hair Density': selections.hairDensity,
+        'Forehead Size': selections.foreheadSize,
+        'Receding Hairline': selections.recedingHairline,
+        'Skin Color': selections.skinColor,
+        'Region': selections.continent,
+        'Age Range': selections.ageRange
+      });
+      console.log('=====================\n');
+    }
+
     const matches = hairstyles.map(hairstyle => {
       let score = 0;
       let totalWeight = 0;
@@ -263,10 +259,31 @@ function App() {
       };
     });
     
-    // Filter matches to show only those above 80% and sort by score
+    // Filter matches to show only those above 80%, sort by score, and take top 10
     const sortedMatches = matches
       .filter(match => match.score >= 80)
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);  // Limit to top 10 results
+
+    // Log matching hairstyles with their details from CSV if debug mode is on
+    if (DEBUG) {
+      console.log('\n=== Matching Hairstyles ===');
+      sortedMatches.forEach((match, index) => {
+        const hairstyle = hairstyles.find(h => h['Hairstyle Name'] === match.name);
+        console.log(`\n${index + 1}. ${match.name} (${match.score}% Match)`);
+        console.table({
+          'Face Shape': hairstyle['Face Shape (30)'],
+          'Hair Type': hairstyle['Hair Type (20)'],
+          'Hair Density': hairstyle['Hair Density (15)'],
+          'Forehead Size': hairstyle['Forehead Size (10)'],
+          'Receding Hairline': hairstyle['Receding Hairline (10)'],
+          'Skin Color': hairstyle['Skin Color (5)'],
+          'Region': hairstyle['Continent (5)'],
+          'Age Range': hairstyle['Age Range (5)']
+        });
+      });
+      console.log('=====================\n');
+    }
       
     setResults(sortedMatches);
   };
@@ -392,8 +409,8 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>StyleMatch</h1>
-        <p>Discover your signature look in seconds</p>
+        <h1>YourHairstyle</h1>
+        <p>Find your perfect hairstyle in seconds</p>
       </header>
       
       <div className="progress-bar">
