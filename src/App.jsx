@@ -115,8 +115,11 @@ function App() {
 
   // Helper function to check if an age falls within a range
   const isAgeInRange = (selectedAge, rangeStr) => {
-    // Handle 'Any' case
-    if (rangeStr.toLowerCase() === 'any') {
+    // Clean and normalize the range string
+    const normalizedRange = rangeStr.toLowerCase().trim();
+    
+    // Handle 'any' case (case insensitive)
+    if (normalizedRange === 'any') {
       return true;
     }
 
@@ -139,22 +142,35 @@ function App() {
       selectedMax = 100;
     }
 
-    // Parse the range string
-    const ranges = rangeStr.toLowerCase().split(',').map(r => r.trim());
+    // Parse the range string, handling multiple ranges
+    const ranges = normalizedRange.split(',').map(r => r.trim());
     
     return ranges.some(range => {
+      // Handle "teens" cases (e.g., "teens-30s", "teens")
       if (range.includes('teens')) {
+        if (range.includes('-')) {
+          // Handle ranges like "teens-30s"
+          const endAge = range.split('-')[1];
+          const endNum = parseInt(endAge) || 39; // if it ends with "30s", use 39
+          return selectedMin < 20 || selectedMax <= endNum;
+        }
         return selectedMin < 20;
       }
       
+      // Handle "+" ranges (e.g., "18+", "50+")
       if (range.includes('+')) {
         const min = parseInt(range);
-        return selectedMin >= min;
+        return !isNaN(min) && selectedMin >= min;
       }
       
+      // Handle numeric ranges (e.g., "18-50", "20-40")
       if (range.includes('-')) {
-        const [min, max] = range.split('-').map(num => parseInt(num));
-        return selectedMin <= max && selectedMax >= min;
+        const [minStr, maxStr] = range.split('-');
+        const min = parseInt(minStr);
+        const max = parseInt(maxStr);
+        if (!isNaN(min) && !isNaN(max)) {
+          return selectedMin <= max && selectedMax >= min;
+        }
       }
 
       return false;
@@ -167,6 +183,24 @@ function App() {
     if (size.includes('Medium')) return 'Medium';
     if (size.includes('Big')) return 'Big';
     return size;
+  };
+
+  // Helper function to clean and normalize CSV values
+  const normalizeValue = (value) => {
+    if (typeof value !== 'string') return '';
+    return value.toLowerCase().trim();
+  };
+
+  // Helper function to check if value matches any option in a list
+  const isMatch = (value, optionsStr) => {
+    if (!optionsStr) return false;
+    const normalizedValue = normalizeValue(value);
+    const options = normalizeValue(optionsStr)
+      .split(',')
+      .map(opt => opt.trim())
+      .filter(opt => opt.length > 0);
+    
+    return options.includes(normalizedValue) || options.includes('any');
   };
 
   // Calculate matching hairstyles based on user selections
@@ -193,51 +227,44 @@ function App() {
       let featureMatches = {};
       
       // Face shape
-      const faceShapeOptions = String(hairstyle['Face Shape (30)']).toLowerCase().split(',').map(s => s.trim());
-      const faceShapeMatch = faceShapeOptions.includes(selections.faceShape.toLowerCase()) || faceShapeOptions.includes('any');
+      const faceShapeMatch = isMatch(selections.faceShape, hairstyle['Face Shape (30)']);
       if (faceShapeMatch) score += steps[0].weight;
       totalWeight += steps[0].weight;
       featureMatches['Face Shape'] = faceShapeMatch;
       
       // Hair type
-      const hairTypeOptions = String(hairstyle['Hair Type (20)']).toLowerCase().split(',').map(s => s.trim());
-      const hairTypeMatch = hairTypeOptions.includes(selections.hairType.toLowerCase()) || hairTypeOptions.includes('any');
+      const hairTypeMatch = isMatch(selections.hairType, hairstyle['Hair Type (20)']);
       if (hairTypeMatch) score += steps[1].weight;
       totalWeight += steps[1].weight;
       featureMatches['Hair Type'] = hairTypeMatch;
       
       // Hair density
-      const hairDensityOptions = String(hairstyle['Hair Density (15)']).toLowerCase().split(',').map(s => s.trim());
-      const densityMatch = hairDensityOptions.includes(selections.hairDensity.toLowerCase()) || hairDensityOptions.includes('any');
+      const densityMatch = isMatch(selections.hairDensity, hairstyle['Hair Density (15)']);
       if (densityMatch) score += steps[2].weight;
       totalWeight += steps[2].weight;
       featureMatches['Hair Density'] = densityMatch;
       
       // Forehead size
-      const foreheadSizeOptions = String(hairstyle['Forehead Size (10)']).toLowerCase().split(',').map(s => s.trim());
-      const normalizedSelection = normalizeForeheadSize(selections.foreheadSize).toLowerCase();
-      const foreheadMatch = foreheadSizeOptions.includes(normalizedSelection) || foreheadSizeOptions.includes('any');
+      const normalizedSelection = normalizeForeheadSize(selections.foreheadSize);
+      const foreheadMatch = isMatch(normalizedSelection, hairstyle['Forehead Size (10)']);
       if (foreheadMatch) score += steps[3].weight;
       totalWeight += steps[3].weight;
       featureMatches['Forehead Size'] = foreheadMatch;
       
       // Receding hairline
-      const recedingHairlineOptions = String(hairstyle['Receding Hairline (10)']).toLowerCase().split(',').map(s => s.trim());
-      const hairlineMatch = recedingHairlineOptions.includes(selections.recedingHairline.toLowerCase()) || recedingHairlineOptions.includes('any');
+      const hairlineMatch = isMatch(selections.recedingHairline, hairstyle['Receding Hairline (10)']);
       if (hairlineMatch) score += steps[4].weight;
       totalWeight += steps[4].weight;
       featureMatches['Receding Hairline'] = hairlineMatch;
       
       // Skin color
-      const skinColorOptions = String(hairstyle['Skin Color (5)']).toLowerCase().split(',').map(s => s.trim());
-      const skinMatch = skinColorOptions.includes(selections.skinColor.toLowerCase()) || skinColorOptions.includes('any');
+      const skinMatch = isMatch(selections.skinColor, hairstyle['Skin Color (5)']);
       if (skinMatch) score += steps[5].weight;
       totalWeight += steps[5].weight;
       featureMatches['Skin Color'] = skinMatch;
       
       // Continent
-      const continentOptions = String(hairstyle['Continent (5)']).toLowerCase().split(',').map(s => s.trim());
-      const continentMatch = continentOptions.includes(selections.continent.toLowerCase()) || continentOptions.includes('any');
+      const continentMatch = isMatch(selections.continent, hairstyle['Continent (5)']);
       if (continentMatch) score += steps[6].weight;
       totalWeight += steps[6].weight;
       featureMatches['Region'] = continentMatch;
